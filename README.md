@@ -44,6 +44,7 @@
 | ID | 문제 | 심각도 | 상태 | 발견일 |
 |----|------|--------|------|--------|
 | [UX-001](#ux-001-스크롤-시-컨트롤-이탈) | 스크롤 시 컨트롤 이탈 | Major | 해결됨 | 2026-02-01 |
+| [UX-002](#ux-002-고정-요소-겹침) | 고정 요소 겹침 | Major | 해결됨 | 2026-02-01 |
 
 ---
 
@@ -147,10 +148,125 @@
 
 ---
 
+## UX-002: 고정 요소 겹침
+
+**발견일**: 2026-02-01  
+**발견 위치**: `hana/lib/hanary_web/live/tasks_live.ex` (작업 화면)  
+**심각도**: Major  
+**상태**: 해결됨  
+
+### 문제 설명
+
+작업 화면에서 Toggle + Hero 영역을 `sticky top-0`으로 고정했으나, 페이지 상단에 GNB(Global Navigation Bar)가 `sticky top-0 z-40`으로 이미 고정되어 있어서 스크롤 시 sticky 영역이 GNB 뒤로 들어가 윗부분이 가려짐.
+
+### 1. 공식 용어 (Official Terms)
+
+| 영어 | 한국어 | 정의 |
+|------|--------|------|
+| **Sticky/Fixed Element Overlap** | 고정 요소 겹침 | 여러 고정 요소가 동일한 위치에 겹쳐 콘텐츠가 가려지는 현상 |
+| **Content Occlusion** | 콘텐츠 가림 | 다른 UI 요소에 의해 콘텐츠가 보이지 않게 되는 상태 |
+| **Z-index Stacking Conflict** | Z-인덱스 쌓임 충돌 | 여러 요소의 z-index가 충돌하여 의도치 않은 레이어 순서가 발생 |
+| **Viewport Collision** | 뷰포트 충돌 | 뷰포트 내 고정 요소들이 서로 공간을 침범하는 상황 |
+| **Header Occlusion** | 헤더 가림 | 고정된 헤더에 의해 하위 콘텐츠가 가려지는 현상 |
+
+### 2. 해결 패턴 (Solution Patterns)
+
+| 패턴명 | 설명 | 적용 사례 |
+|--------|------|----------|
+| **Top offset adjustment** | sticky/fixed 요소의 top 값을 상위 고정 요소 높이만큼 조정 | 본 케이스에 적용 |
+| **CSS custom properties** | GNB 높이를 CSS 변수로 정의하여 일관성 유지 | `--header-height: 56px` |
+| **Stacking context management** | z-index 체계를 설계하여 레이어 충돌 방지 | z-10, z-20, z-30, z-40 |
+| **Scroll margin/padding** | `scroll-margin-top`으로 앵커 링크 시 여백 확보 | 앵커 네비게이션 |
+
+### 3. 휴리스틱 분류 (Heuristic Classification)
+
+**Nielsen Norman Group 10 Usability Heuristics** 기준:
+
+| 휴리스틱 | 위반 여부 | 설명 |
+|----------|----------|------|
+| **#1: Visibility of system status** | **위반** | 고정 영역의 일부가 가려져 현재 상태를 볼 수 없음 |
+| **#8: Aesthetic and minimalist design** | **부분 위반** | 요소 겹침으로 인한 시각적 혼란 |
+
+### 4. 실무 표현 (Practical Expressions)
+
+**사용자 피드백**:
+- "상단바에 가려져서 안 보여요"
+- "위가 잘려요"
+- "스크롤하면 뭔가 가려져요"
+
+**개발자 표현**:
+- "sticky가 GNB 뒤로 들어가요"
+- "top offset이 안 맞아요"
+- "z-index 문제인 것 같아요"
+
+**디자이너 표현**:
+- "고정 영역끼리 충돌해요"
+- "레이어 겹침 이슈가 있어요"
+- "헤더 높이만큼 밀어줘야 해요"
+
+### 5. 해결 방법 (Solution)
+
+**선택한 방법**: Top offset adjustment
+
+**변경 전**:
+```html
+<!-- GNB: sticky top-0 z-40, 높이 약 56px -->
+<header class="sticky top-0 z-40">...</header>
+
+<!-- 작업 화면의 sticky 영역: top-0이라 GNB와 겹침 -->
+<div class="sticky top-0 z-10">
+  <.work_mode_toggle />
+  <.top_task_hero />
+</div>
+```
+
+**변경 후**:
+```html
+<!-- GNB: 그대로 -->
+<header class="sticky top-0 z-40">...</header>
+
+<!-- top-14 (56px)로 GNB 높이만큼 아래로 -->
+<div class="sticky top-14 z-10">
+  <.work_mode_toggle />
+  <.top_task_hero />
+</div>
+```
+
+**대안 검토**:
+
+| 방법 | 장점 | 단점 | 채택 |
+|------|------|------|------|
+| Top offset (top-14) | 간단, 즉시 적용 가능 | 하드코딩, GNB 높이 변경 시 수정 필요 | **O** |
+| CSS variable | 유지보수 용이 | 초기 설정 필요 | 향후 고려 |
+| z-index 조정 | 레이어 명확화 | 근본 해결 아님 (여전히 겹침) | X |
+
+**권장 개선**:
+```css
+:root {
+  --gnb-height: 3.5rem; /* 56px */
+}
+
+.sticky-below-gnb {
+  position: sticky;
+  top: var(--gnb-height);
+}
+```
+
+### 6. 참고 자료 (References)
+
+- [MDN: CSS position sticky](https://developer.mozilla.org/en-US/docs/Web/CSS/position#sticky)
+- [CSS Tricks: Practical CSS Scroll Snapping](https://css-tricks.com/practical-css-scroll-snapping/)
+- [Web.dev: Content hidden under fixed headers](https://web.dev/articles/css-scroll-snap)
+
+---
+
 ## 카테고리별 인덱스
 
 ### 내비게이션 (Navigation)
 - [UX-001](#ux-001-스크롤-시-컨트롤-이탈) - 스크롤 시 컨트롤 이탈
+
+### 레이아웃 (Layout)
+- [UX-002](#ux-002-고정-요소-겹침) - 고정 요소 겹침
 
 ### 폼 (Forms)
 (아직 없음)
@@ -176,6 +292,10 @@
 | **Overflow** | 컨테이너 크기를 초과하는 콘텐츠의 처리 방식 |
 | **Heuristic** | 경험에 기반한 문제 해결 방법론 |
 | **FAB** | Floating Action Button, 화면에 떠있는 액션 버튼 |
+| **Occlusion** | 다른 요소에 의해 콘텐츠가 가려지는 현상 |
+| **Stacking Context** | CSS에서 요소들이 z축으로 쌓이는 맥락 |
+| **Z-index** | 요소의 z축 순서를 지정하는 CSS 속성 |
+| **GNB** | Global Navigation Bar, 전역 상단 내비게이션 바 |
 
 ---
 
@@ -184,3 +304,4 @@
 | 날짜 | 변경 내용 |
 |------|----------|
 | 2026-02-01 | 문서 생성, UX-001 추가 |
+| 2026-02-01 | UX-002 고정 요소 겹침 추가 |

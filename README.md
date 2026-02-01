@@ -46,6 +46,7 @@
 | [UX-001](#ux-001-스크롤-시-컨트롤-이탈) | 스크롤 시 컨트롤 이탈 | Major | 해결됨 | 2026-02-01 |
 | [UX-002](#ux-002-고정-요소-겹침) | 고정 요소 겹침 | Major | 해결됨 | 2026-02-01 |
 | [UX-003](#ux-003-여백-부족) | 여백 부족 | Minor | 해결됨 | 2026-02-01 |
+| [UX-004](#ux-004-수직-정렬-불일치) | 수직 정렬 불일치 | Minor | 해결됨 | 2026-02-01 |
 
 ---
 
@@ -275,6 +276,116 @@
 
 ---
 
+## UX-004: 수직 정렬 불일치
+
+**발견일**: 2026-02-01  
+**발견 위치**: `hana/lib/hanary_web/live/tasks_live.ex` (작업 화면)  
+**심각도**: Minor  
+**상태**: 해결됨  
+
+### 문제 설명
+
+작업 화면에서 좌측 탭 버튼들(모든 작업/내 작업/AI 작업)과 우측 아이콘 버튼들(?, ⋮)이 수직으로 가운데 정렬(`items-center`)되어 있었음. 좌측에는 탭 아래에 설명 텍스트가 있어 전체 높이가 더 컸고, 이로 인해 우측 버튼들이 "공중에 떠있는" 듯한 불안정한 느낌을 줌.
+
+```
+변경 전 (items-center):
+┌─────────────────────────────────────────────────┐
+│                                                 │
+│ [All Tasks] [My Tasks] [AI task]    [?] [⋮]    │  ← 세로 가운데 정렬
+│ All tasks (by priority)                         │
+│                                                 │
+└─────────────────────────────────────────────────┘
+
+변경 후 (items-start):
+┌─────────────────────────────────────────────────┐
+│ [All Tasks] [My Tasks] [AI task]    [?] [⋮]    │  ← 상단 정렬
+│ All tasks (by priority)                         │
+└─────────────────────────────────────────────────┘
+```
+
+### 1. 공식 용어 (Official Terms)
+
+| 영어 | 한국어 | 정의 |
+|------|--------|------|
+| **Vertical Alignment** | 수직 정렬 | 요소들이 수직 축에서 어떻게 배치되는지 (top/center/bottom/baseline) |
+| **Alignment** | 정렬 | 디자인 4대 원칙(CRAP) 중 하나로, 요소들의 시각적 연결 |
+| **Visual Anchoring** | 시각적 앵커링 | 요소들이 공통의 기준점에 고정되어 안정감을 주는 것 |
+| **Baseline Alignment** | 기준선 정렬 | 텍스트나 요소들이 공통의 기준선에 맞춰 정렬됨 |
+| **Visual Weight** | 시각적 무게 | 요소의 크기, 색상, 위치 등이 주는 시각적 중요도 |
+
+### 2. 해결 패턴 (Solution Patterns)
+
+| 패턴명 | 설명 | 적용 사례 |
+|--------|------|----------|
+| **Top alignment (items-start)** | 요소들을 컨테이너 상단에 정렬 | 본 케이스에 적용 |
+| **Baseline alignment** | 텍스트 기준선에 맞춰 정렬 | 텍스트와 아이콘 혼합 시 |
+| **Consistent height** | 관련 요소들의 높이를 동일하게 | 버튼 그룹, 탭 바 |
+| **Visual grouping** | 관련 요소들을 같은 정렬 기준으로 그룹화 | 툴바, 헤더 |
+
+### 3. 휴리스틱 분류 (Heuristic Classification)
+
+**Nielsen Norman Group 10 Usability Heuristics** 기준:
+
+| 휴리스틱 | 위반 여부 | 설명 |
+|----------|----------|------|
+| **#8: Aesthetic and minimalist design** | **위반** | 불일치한 정렬은 시각적 혼란을 야기 |
+| **#4: Consistency and standards** | **부분 위반** | 같은 레벨의 컨트롤이 다른 기준선에 있음 |
+
+**Gestalt 원칙**:
+- **Common Fate (공통 운명)**: 같은 라인에 있는 요소들은 "같은 그룹"으로 인식
+- **Continuity (연속성)**: 눈은 연속된 선을 따라 이동
+- **Prägnanz (간결성)**: 뇌는 가장 단순하고 안정적인 형태를 선호
+
+### 4. 실무 표현 (Practical Expressions)
+
+**사용자 피드백**:
+- "뭔가 어색해 보여요"
+- "버튼이 떠있는 것 같아요"
+- "정렬이 안 맞아 보여요"
+
+**개발자 표현**:
+- "vertical alignment가 안 맞아요"
+- "items-center 대신 items-start로 바꿔야 할 것 같아요"
+- "정렬 문제예요"
+
+**디자이너 표현**:
+- "기준선이 안 맞아요"
+- "시각적 앵커가 필요해요"
+- "같은 '땅'에 서있어야 해요"
+
+### 5. 해결 방법 (Solution)
+
+**선택한 방법**: Top alignment (상단 정렬)
+
+`items-center` → `items-start`로 변경하여 모든 요소가 상단 기준선에 정렬되도록 함.
+
+| 방법 | 장점 | 단점 | 채택 |
+|------|------|------|------|
+| items-start | 간단, 시각적 안정감 | - | **O** |
+| items-baseline | 텍스트 기준선 정렬 | 아이콘에는 부적합 | X |
+| 높이 맞추기 | 완벽한 정렬 | 유지보수 어려움 | 보조 수단 |
+
+**변경 코드**:
+```diff
+- <div class="flex items-center justify-between gap-2">
++ <div class="flex items-start justify-between gap-2">
+```
+
+### 6. 왜 `items-start`가 더 좋아 보이는가?
+
+1. **시각적 "땅"의 개념**: 인간의 뇌는 무의식적으로 중력을 인식. 상단 정렬된 요소들은 같은 "지면"에 서있는 느낌 → 안정감
+2. **읽기 흐름**: 상단 정렬 시 눈이 수평으로 자연스럽게 이동. 가운데 정렬이면 눈이 지그재그로 움직여야 함
+3. **그룹핑**: 같은 상단 라인의 요소들이 "하나의 컨트롤 바"로 인식되고, 설명 텍스트는 별도의 부가 정보로 자연스럽게 분리
+
+### 7. 참고 자료 (References)
+
+- [Laws of UX: Law of Prägnanz](https://lawsofux.com/law-of-pr%C3%A4gnanz/)
+- [Gestalt Principles in UI Design](https://www.nngroup.com/articles/gestalt-proximity/)
+- [Design Principles: Visual Hierarchy](https://www.interaction-design.org/literature/topics/visual-hierarchy)
+- [The 4 Basic Principles of Design (CRAP)](https://vwo.com/blog/crap-design-principles/)
+
+---
+
 ## 카테고리별 인덱스
 
 ### 내비게이션 (Navigation)
@@ -283,6 +394,7 @@
 ### 레이아웃 (Layout)
 - [UX-002](#ux-002-고정-요소-겹침) - 고정 요소 겹침
 - [UX-003](#ux-003-여백-부족) - 여백 부족
+- [UX-004](#ux-004-수직-정렬-불일치) - 수직 정렬 불일치
 
 ### 폼 (Forms)
 (아직 없음)
@@ -315,6 +427,12 @@
 | **Whitespace** | 여백, UI 요소 사이의 빈 공간 |
 | **Breathing Room** | 요소 주변의 시각적 여유 공간 |
 | **Spacing Token** | 디자인 시스템에서 정의한 일관된 간격 단위 |
+| **Vertical Alignment** | 수직 정렬, 요소들의 수직 축 배치 방식 (top/center/bottom/baseline) |
+| **Visual Anchoring** | 시각적 앵커링, 요소들이 공통 기준점에 고정되어 안정감을 주는 것 |
+| **Visual Weight** | 시각적 무게, 요소의 크기/색상/위치 등이 주는 시각적 중요도 |
+| **CRAP** | 디자인 4대 원칙 - Contrast, Repetition, Alignment, Proximity |
+| **Gestalt** | 게슈탈트, 인간이 시각 정보를 인지하고 조직화하는 방식에 관한 이론 |
+| **Prägnanz** | 간결성 법칙, 뇌가 가장 단순하고 안정적인 형태를 선호하는 현상 |
 
 ---
 
@@ -326,3 +444,4 @@
 | 2026-02-01 | UX-002 고정 요소 겹침 추가 |
 | 2026-02-01 | 코드 예시 간소화 |
 | 2026-02-01 | UX-003 여백 부족 추가 |
+| 2026-02-01 | UX-004 수직 정렬 불일치 추가 |

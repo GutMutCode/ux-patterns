@@ -114,25 +114,7 @@
 
 **선택한 방법**: Scroll container separation (스크롤 컨테이너 분리)
 
-**변경 전**:
-```html
-<div class="overflow-y-auto">
-  <!-- 완료 섹션 -->
-  <div class="work-mode-toggle">...</div>  <!-- 스크롤 영역 내부 -->
-  <div class="task-list">...</div>
-</div>
-```
-
-**변경 후**:
-```html
-<div class="work-mode-toggle border-b">...</div>  <!-- 스크롤 영역 외부 -->
-<div class="overflow-y-auto">
-  <!-- 완료 섹션 -->
-  <div class="task-list">...</div>
-</div>
-```
-
-**대안 검토**:
+고정할 요소를 `overflow-y-auto` 스크롤 컨테이너 밖으로 이동하여 구조적으로 분리.
 
 | 방법 | 장점 | 단점 | 채택 |
 |------|------|------|------|
@@ -208,49 +190,13 @@
 
 **선택한 방법**: Top offset adjustment
 
-**변경 전**:
-```html
-<!-- GNB: sticky top-0 z-40, 높이 약 56px -->
-<header class="sticky top-0 z-40">...</header>
-
-<!-- 작업 화면의 sticky 영역: top-0이라 GNB와 겹침 -->
-<div class="sticky top-0 z-10">
-  <.work_mode_toggle />
-  <.top_task_hero />
-</div>
-```
-
-**변경 후**:
-```html
-<!-- GNB: 그대로 -->
-<header class="sticky top-0 z-40">...</header>
-
-<!-- top-14 (56px)로 GNB 높이만큼 아래로 -->
-<div class="sticky top-14 z-10">
-  <.work_mode_toggle />
-  <.top_task_hero />
-</div>
-```
-
-**대안 검토**:
+`sticky top-0` → `sticky top-14` (56px)로 변경하여 GNB 높이만큼 아래에 고정.
 
 | 방법 | 장점 | 단점 | 채택 |
 |------|------|------|------|
-| Top offset (top-14) | 간단, 즉시 적용 가능 | 하드코딩, GNB 높이 변경 시 수정 필요 | **O** |
+| Top offset | 간단, 즉시 적용 | 하드코딩, GNB 높이 변경 시 수정 필요 | **O** |
 | CSS variable | 유지보수 용이 | 초기 설정 필요 | 향후 고려 |
 | z-index 조정 | 레이어 명확화 | 근본 해결 아님 (여전히 겹침) | X |
-
-**권장 개선**:
-```css
-:root {
-  --gnb-height: 3.5rem; /* 56px */
-}
-
-.sticky-below-gnb {
-  position: sticky;
-  top: var(--gnb-height);
-}
-```
 
 ### 6. 참고 자료 (References)
 
@@ -305,3 +251,4 @@
 |------|----------|
 | 2026-02-01 | 문서 생성, UX-001 추가 |
 | 2026-02-01 | UX-002 고정 요소 겹침 추가 |
+| 2026-02-01 | 코드 예시 간소화 |
